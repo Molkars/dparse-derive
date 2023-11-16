@@ -56,3 +56,4 @@ fn find_try_parse_args(attrs: &[Attribute]) -> Option<Result<TryParseAttr, syn::
 fn find_try_parse_attr(attrs: &[Attribute]) -> Option<&Attribute> {
     attrs.iter().find(|attr| attr.path().is_ident("try_parse"))
 }
+
