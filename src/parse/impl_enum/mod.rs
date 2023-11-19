@@ -4,7 +4,7 @@ use std::str::FromStr;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use syn::spanned::Spanned;
-use syn::{DataEnum, DeriveInput, Error, Fields, Lifetime, LitStr, Type, Variant};
+use syn::{DataEnum, DeriveInput, Error, Fields, LitStr, Type, Variant};
 use syn::parse::{Parse, ParseStream};
 
 use crate::parse::find_try_parse_args;
@@ -73,7 +73,7 @@ impl<'a> Impl<'a> {
         Ok(quote! {
             return #(#variants)else*
             else {
-                Err(input.mismatch())
+                Err(input.mismatch(format!("expected {}", std::any::type_name::<Self>())))
             };
         })
     }
@@ -99,7 +99,7 @@ impl<'a> Impl<'a> {
                         .fields
                         .iter()
                         .map(|field| field.ident.as_ref().unwrap())
-                        .position(|field| field.to_string() == name)
+                        .position(|field| *field == name)
                         .ok_or_else(|| {
                             Error::new_spanned(
                                 target,
@@ -270,7 +270,7 @@ impl<'a> Impl<'a> {
                 }
                 None => {
                     quote! {
-                        <#typename as dparse::parse::Parse>::parse
+                        <#typename as dparse::Parse>::parse
                     }
                 }
             };
@@ -288,7 +288,6 @@ impl<'a> Impl<'a> {
                 }
             };
 
-            let step_name = &step.name;
             let body = match &step.kind {
                 StepKind::Binary => {
                     let lhs_name = &step.names[0];

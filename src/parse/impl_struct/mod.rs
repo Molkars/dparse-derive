@@ -42,7 +42,7 @@ impl<'a> Impl<'a> {
                         .fields
                         .iter()
                         .map(|field| field.ident.as_ref().unwrap())
-                        .position(|field| field.to_string() == name)
+                        .position(|field| *field == name)
                         .ok_or_else(|| {
                             Error::new_spanned(
                                 target,
@@ -100,7 +100,7 @@ impl<'a> Impl<'a> {
             }
         };
 
-        Ok(quote! {
+        let parse_impl = quote! {
             #(
                 let #opt_names = input.parse::<#opt_types>()?;
             )*
@@ -108,6 +108,8 @@ impl<'a> Impl<'a> {
                 let #req_names = input.require::<#req_types>()?;
             )*
             #value
-        })
+        };
+
+        Ok(parse_impl)
     }
 }

@@ -23,23 +23,33 @@ pub fn impl_parse(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast = syn::parse2::<syn::DeriveInput>(input)?;
 
     let name = &ast.ident;
+    if ast.generics.lifetimes().count() > 1 {
+        return Err(syn::Error::new_spanned(
+            ast,
+            "expected at most one lifetime parameter",
+        ));
+    }
+
     let lifetime = ast
         .generics
         .lifetimes()
         .next()
-        .map(|lifetime| lifetime.lifetime.clone())
-        .unwrap_or_else(|| Lifetime::new("'_", Span::call_site()));
+        .map(|lifetime| lifetime.lifetime.clone());
 
-    let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+    let impl_lifetime = lifetime.clone()
+        .unwrap_or_else(|| Lifetime::new("'src", Span::call_site()));
+
     let parse_value = match &ast.data {
         Data::Union(_) => return Err(syn::Error::new_spanned(ast, "unions are not supported")),
-        Data::Struct(item) => impl_struct::impl_struct(&ast, &item),
-        Data::Enum(item) => impl_enum::impl_enum(&ast, &item),
+        Data::Struct(item) => impl_struct::impl_struct(&ast, item),
+        Data::Enum(item) => impl_enum::impl_enum(&ast, item),
     }?;
 
+    let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
     let output = quote! {
-        impl #impl_generics dparse::parse::Parse<#lifetime> for #name #ty_generics #where_clause {
-            fn parse(input: &mut dparse::parse::ParseStream<#lifetime>) -> Result<Self, dparse::parse::ParseError> {
+        impl<#impl_lifetime> dparse::Parse<#impl_lifetime> for #name #ty_generics #where_clause {
+            fn parse<P: dparse::Parser<#impl_lifetime> + ?Sized>(input: &mut P) -> dparse::ParseResult<Self> {
+                use dparse::{Parser};
                 #parse_value
             }
         }
