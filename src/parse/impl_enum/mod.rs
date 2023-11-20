@@ -457,7 +457,7 @@ impl<'a> Impl<'a> {
 
             functions.push_back(quote! {
                 #[allow(non_snake_case)]
-                fn #func_name(input: &mut dparse::parse::ParseStream<'_>) -> Result<#typename, dparse::parse::ParseError> {
+                fn #func_name<P: dparse::Parser>(input: &mut P) -> dparse::ParseResult<#typename> {
                     #body
                 }
             });
